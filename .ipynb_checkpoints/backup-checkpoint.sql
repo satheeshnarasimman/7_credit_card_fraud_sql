@@ -91,7 +91,7 @@ ADD CONSTRAINT "fk_transaction_id_merchant" FOREIGN KEY("id_merchant")
 REFERENCES "merchant" ("id_merchant");
 
 ----------------------------------------------------------
--- Grouping the transactions for each customer
+-- Grouping the transactions for each customer. Select the name and merchants name
 CREATE VIEW customer_grouping AS
 SELECT ch.ch_id, txn.id_merchant, SUM(amount)
 FROM card_holder as ch
@@ -109,10 +109,9 @@ ORDER BY SUM (amount) DESC;
 SELECT *
 FROM customer_grouping;
 
--------------------------------------------------------------
--- Select the 100 highest transactions that occured between 7 AM- 9 AM
-CREATE VIEW seven_nine_txn100 AS
-SELECT ch.ch_id, txn.amount, date_trunc ('hour', date) AS seven_nine 
+-- Money spent by each customer
+CREATE VIEW customer_money AS
+SELECT ch.ch_id, txn.amount
 FROM card_holder as ch
 LEFT JOIN credit_card as cc
     ON ch.ch_id= cc.ch_id
@@ -122,10 +121,31 @@ LEFT JOIN merchant as mer
     ON txn.id_merchant= mer.id_merchant
 LEFT JOIN merchant_category as mc
     on mer.mc_id= mc.mc_id
-WHERE date between '2018-01-01 07:00:00- 09:00:00' AND '2018-12-31 07:00:00- 09:00:00'
-GROUP BY ch.ch_id, txn.amount, date_trunc ('hour', date)
+GROUP BY ch.ch_id, txn.amount
+ORDER BY ch.ch_id, txn.amount;
+
+SELECT *
+FROM customer_money;
+-------------------------------------------------------------
+-- Select the 100 highest transactions that occured between 7 AM- 9 AM
+CREATE VIEW seven_nine AS
+SELECT ch.ch_id, txn.amount, date_part ('hour', "date") AS seven_nine 
+FROM card_holder as ch
+LEFT JOIN credit_card as cc
+    ON ch.ch_id= cc.ch_id
+LEFT JOIN transaction as txn
+    ON cc.card= txn.card
+LEFT JOIN merchant as mer
+    ON txn.id_merchant= mer.id_merchant
+LEFT JOIN merchant_category as mc
+    on mer.mc_id= mc.mc_id
+WHERE date_part ('hour', "date") >=7 AND date_part ('hour', "date") <=9
+GROUP BY ch.ch_id, txn.amount, date_part ('hour', "date")
 ORDER BY txn.amount DESC
-LIMIT 100; 
+LIMIT 100;
+
+SELECT *
+FROM seven_nine;
 
 ----------------------------------------------------
 -- Count the transactions less than $2 per cardholder
@@ -161,7 +181,7 @@ LEFT JOIN merchant as mer
 LEFT JOIN merchant_category as mc
     on mer.mc_id= mc.mc_id
 WHERE txn.amount< 2.00
-GROUP BY mer.id_merchant
+GROUP BY mer.id_merchant, mer.mer_name
 ORDER BY COUNT(txn.amount) DESC
 LIMIT 5;
 
@@ -185,7 +205,6 @@ WHERE ch.ch_id= 2 OR ch.ch_id= 18
 GROUP BY ch.ch_id, txn.date, txn.amount
 ORDER BY txn.amount DESC;
 
--- Querying the view to find fraud txn for 2 and 18
 SELECT *
 FROM fraud_218;
 
@@ -214,38 +233,10 @@ WHERE ch.ch_id= 25
 GROUP BY ch.ch_id, txn.date, txn.amount
 ORDER BY txn.amount DESC;
 
+SELECT *
+FROM fraud_25;
+
 -- Querying the view by month and the first half of 2018
 SELECT *, date_part ('month', txn_date) AS numeric_month
 FROM fraud_25
 WHERE txn_date BETWEEN '2018-01-01' AND '2018-06-30';
-
--- Might not be required
--- January 2018
-SELECT *
-FROM fraud_25
-WHERE txn_date BETWEEN '2018-01-01' AND '2018-01-31';
-
--- February 2018
-SELECT *
-FROM fraud_25
-WHERE txn_date BETWEEN '2018-02-01' AND '2018-02-28';
-
--- March 2018
-SELECT *
-FROM fraud_25
-WHERE txn_date BETWEEN '2018-03-01' AND '2018-03-31';
-
--- April 2018
-SELECT *
-FROM fraud_25
-WHERE txn_date BETWEEN '2018-04-01' AND '2018-04-30';
-
--- May 2018
-SELECT *
-FROM fraud_25
-WHERE txn_date BETWEEN '2018-05-01' AND '2018-05-31';
-
--- June 2018
-SELECT *
-FROM fraud_25
-WHERE txn_date BETWEEN '2018-06-01' AND '2018-06-30';
