@@ -30,7 +30,7 @@ LEFT JOIN merchant_category as mc
 ----------------------------------------------------------
 -- Grouping the transactions for each customer. Select the name and merchants name
 CREATE VIEW customer_grouping AS
-SELECT ch.ch_id, txn.id_merchant, SUM(amount)
+SELECT ch.ch_id, ch.ch_name, txn.id_merchant, SUM(amount)
 FROM card_holder as ch
 LEFT JOIN credit_card as cc
     ON ch.ch_id= cc.ch_id
